@@ -1,0 +1,48 @@
+import requests
+import pandas as pd
+
+# Parámetros y url de uso abierto
+url = "https://archive-api.open-meteo.com/v1/archive"
+params = {
+    "latitude": -34.7304,  # Latitud de Lomas de Zamora
+    "longitude": -58.5874,  # Longitud de Lomas de Zamora
+    "start_date": "2024-12-01",
+    "end_date": "2024-12-16",
+    "daily": "temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,weathercode",
+    "timezone": "America/Argentina/Buenos_Aires"
+}
+
+# Solicitar datos
+response = requests.get(url, params=params)
+
+if response.status_code == 200:
+    # Convertir a JSON
+    data = response.json()
+    df = pd.DataFrame(data["daily"])
+
+    # Agregar una columna descriptiva del clima
+    def describe_weather(code):
+        if code == 0:
+            return "Despejado"
+        elif code in [1, 2, 3]:
+            return "Parcialmente nublado"
+        elif code in [45, 48]:
+            return "Neblina"
+        elif code in range(51, 58):
+            return "Llovizna"
+        elif code in range(61, 68):
+            return "Lluvia"
+        elif code in range(80, 83):
+            return "Lluvia de corta duración"
+        elif code == 95:
+            return "Tormenta"
+        else:
+            return "Sin datos"
+
+    df["clima"] = df["weathercode"].apply(describe_weather)
+
+    # Guardar como CSV con coma como separador decimal
+    df.to_csv("temperatura_lomas_de_zamora_con_clima_nuevo.csv", index=False, decimal=",")
+    print("Datos guardados en 'temperatura_lomas_de_zamora_con_clima.csv'")
+else:
+    print(f"Error al obtener los datos: {response.status_code}")
